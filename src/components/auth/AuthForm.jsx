@@ -19,7 +19,6 @@ import { authClient } from "@/lib/auth-client";
 
 export default function AuthForm({ mode = "login" }) {
   const isSignup = mode === "signup";
-
   const router = useRouter();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -157,12 +156,10 @@ export default function AuthForm({ mode = "login" }) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-slate-100 px-4 py-12">
-
       <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl md:grid-cols-2">
 
         {/* Left Side */}
         <div className="hidden flex-col justify-between bg-emerald-700 p-10 text-white md:flex">
-
           <Link href="/" className="flex items-center gap-3">
             <div className="rounded-xl bg-white p-2 text-emerald-700">
               <BookOpen size={28} />
@@ -191,7 +188,6 @@ export default function AuthForm({ mode = "login" }) {
 
         {/* Right Side */}
         <div className="p-6 sm:p-10 md:p-12">
-
           <Link
             href="/"
             className="mb-8 flex items-center gap-2 text-xl font-bold text-emerald-700 md:hidden"
@@ -379,7 +375,6 @@ export default function AuthForm({ mode = "login" }) {
                 {message}
               </p>
             )}
-
           </form>
 
           {/* Divider */}
@@ -463,7 +458,6 @@ export default function AuthForm({ mode = "login" }) {
           <p className="mt-6 text-center text-xs text-slate-400">
             By continuing, you agree to BookNook&apos;s Terms and Privacy Policy.
           </p>
-
         </div>
       </div>
     </main>

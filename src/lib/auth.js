@@ -8,9 +8,15 @@ export const auth = betterAuth({
     client,
   }),
 
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL:
+    process.env.BETTER_AUTH_URL || "http://localhost:3000",
 
   secret: process.env.BETTER_AUTH_SECRET,
+
+  trustedOrigins: [
+    "http://localhost:3000",
+    "https://explore-my-book-nook-app.vercel.app",
+  ],
 
   emailAndPassword: {
     enabled: true,
@@ -18,25 +24,15 @@ export const auth = betterAuth({
   },
 
   socialProviders: {
-  google: {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    scope: ["email", "profile"],
-    mapProfileToUser: (profile) => ({
-      name: profile.name,
-      image: profile.picture,
-    }),
-    overrideUserInfoOnSignIn: true,
-  },
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      scope: ["email", "profile"],
+    },
 
-  github: {
-    clientId: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    mapProfileToUser: (profile) => ({
-      name: profile.name || profile.login,
-      image: profile.avatar_url,
-    }),
-    overrideUserInfoOnSignIn: true,
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    },
   },
-},
 });

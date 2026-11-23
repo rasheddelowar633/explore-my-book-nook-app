@@ -74,7 +74,6 @@ export default function BooksList() {
     <section className="min-h-screen bg-slate-50 px-4 py-12">
       <div className="mx-auto max-w-7xl">
 
-        {/* Heading */}
         <div className="mb-10 text-center">
           <span className="mb-3 inline-block rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
             Our Collection
@@ -90,7 +89,6 @@ export default function BooksList() {
           </p>
         </div>
 
-        {/* Search */}
         <div className="mx-auto mb-8 max-w-2xl">
           <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm focus-within:border-emerald-500">
             <Search className="text-emerald-600" size={22} />
@@ -105,7 +103,6 @@ export default function BooksList() {
           </div>
         </div>
 
-        {/* Categories */}
         <div className="mb-10 flex flex-wrap justify-center gap-3">
           {categories.map((item) => (
             <button
@@ -122,7 +119,6 @@ export default function BooksList() {
           ))}
         </div>
 
-        {/* Result Count */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-slate-800">
             Available Books
@@ -133,7 +129,6 @@ export default function BooksList() {
           </span>
         </div>
 
-        {/* Books Grid */}
         {filteredBooks.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredBooks.map((book) => (
