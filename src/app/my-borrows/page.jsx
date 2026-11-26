@@ -14,6 +14,7 @@ import {
   Loader2,
   ArrowLeft,
   Library,
+  RefreshCw,
 } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
@@ -24,7 +25,13 @@ const API_URL =
 const formatDate = (date) => {
   if (!date) return "Not available";
 
-  return new Date(date).toLocaleDateString("en-US", {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Not available";
+  }
+
+  return parsedDate.toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -40,6 +47,7 @@ export default function MyBorrowsPage() {
   const [returningId, setReturningId] = useState(null);
   const [activeTab, setActiveTab] = useState("borrowed");
   const [searchTerm, setSearchTerm] = useState("");
+
   const [message, setMessage] = useState({
     type: "",
     text: "",
@@ -47,7 +55,7 @@ export default function MyBorrowsPage() {
 
   const userEmail = session?.user?.email;
 
-  // Fetch User Borrow Records
+  // Fetch Borrow Records
   const fetchBorrows = useCallback(async () => {
     if (!userEmail) {
       setBorrows([]);
@@ -59,7 +67,10 @@ export default function MyBorrowsPage() {
       setLoading(true);
 
       const response = await fetch(
-        `${API_URL}/borrows?userEmail=${encodeURIComponent(userEmail)}`
+        `${API_URL}/borrows?userEmail=${encodeURIComponent(userEmail)}`,
+        {
+          cache: "no-store",
+        }
       );
 
       const data = await response.json();
@@ -130,7 +141,7 @@ export default function MyBorrowsPage() {
     }
   };
 
-  // Filter Borrow Records
+  // Filter
   const filteredBorrows = borrows.filter((borrow) => {
     const matchesTab = borrow.status === activeTab;
 
@@ -153,7 +164,7 @@ export default function MyBorrowsPage() {
     (borrow) => borrow.status === "returned"
   ).length;
 
-  // Authentication Loading
+  // Auth Loading
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
@@ -162,7 +173,7 @@ export default function MyBorrowsPage() {
     );
   }
 
-  // User Not Logged In
+  // Not Logged In
   if (!session?.user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -180,7 +191,7 @@ export default function MyBorrowsPage() {
           </p>
 
           <Link
-            href="/login"
+            href="/sign-in?callbackURL=%2Fmy-borrows"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 font-semibold text-white transition hover:bg-emerald-700"
           >
             Sign In
@@ -202,6 +213,7 @@ export default function MyBorrowsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
+
       {/* Header */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-800 to-teal-700 px-4 py-16 text-white sm:px-6 lg:px-8">
         <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
@@ -248,9 +260,10 @@ export default function MyBorrowsPage() {
         </div>
       </section>
 
-      {/* Main Content */}
+      {/* Main */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* Statistics */}
+
+        {/* Stats */}
         <div className="mb-8 grid gap-5 sm:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
@@ -308,7 +321,7 @@ export default function MyBorrowsPage() {
           </div>
         )}
 
-        {/* Search and Tabs */}
+        {/* Search / Tabs */}
         <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-sm">
@@ -345,11 +358,24 @@ export default function MyBorrowsPage() {
               >
                 Returned ({returnedCount})
               </button>
+
+              <button
+                onClick={fetchBorrows}
+                disabled={loading}
+                title="Refresh"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`h-5 w-5 ${
+                    loading ? "animate-spin" : ""
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Borrow Records */}
+        {/* Records */}
         {loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((item) => (
@@ -401,6 +427,7 @@ export default function MyBorrowsPage() {
             {filteredBorrows.map((borrow) => {
               const isOverdue =
                 borrow.status === "borrowed" &&
+                borrow.dueDate &&
                 new Date(borrow.dueDate).getTime() < Date.now();
 
               return (
@@ -408,7 +435,7 @@ export default function MyBorrowsPage() {
                   key={borrow._id}
                   className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
-                  {/* Book Cover */}
+                  {/* Cover */}
                   <div className="relative flex h-52 items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-100 to-teal-50">
                     {borrow.image ? (
                       <img
@@ -439,7 +466,7 @@ export default function MyBorrowsPage() {
                     </div>
                   </div>
 
-                  {/* Book Details */}
+                  {/* Details */}
                   <div className="p-5">
                     <h3 className="line-clamp-1 text-xl font-bold text-slate-900">
                       {borrow.bookTitle || "Untitled Book"}
@@ -492,7 +519,7 @@ export default function MyBorrowsPage() {
                       )}
                     </div>
 
-                    {/* Return Button */}
+                    {/* Return */}
                     {borrow.status === "borrowed" ? (
                       <button
                         onClick={() => handleReturn(borrow._id)}

@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
   Plus,
@@ -13,6 +14,8 @@ import {
   LoaderCircle,
   RefreshCw,
 } from "lucide-react";
+
+import { authClient } from "@/lib/auth-client";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -27,6 +30,13 @@ const initialForm = {
 };
 
 export default function BooksPage() {
+  const router = useRouter();
+
+  const { data: session, isPending: sessionLoading } =
+    authClient.useSession();
+
+  const userEmail = session?.user?.email;
+
   const [books, setBooks] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
@@ -40,13 +50,15 @@ export default function BooksPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Fetch All Books
+  // Fetch Books
   const fetchBooks = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/books`);
+      const response = await fetch(`${API_URL}/books`, {
+        cache: "no-store",
+      });
 
       if (!response.ok) {
         throw new Error("Failed to load books.");
@@ -65,20 +77,23 @@ export default function BooksPage() {
     fetchBooks();
   }, []);
 
-  // Search Books
+  // Search
   const filteredBooks = useMemo(() => {
     const searchText = search.toLowerCase().trim();
 
-    return books.filter((book) => {
-      return (
-        book.title?.toLowerCase().includes(searchText) ||
-        book.author?.toLowerCase().includes(searchText) ||
-        book.category?.toLowerCase().includes(searchText)
-      );
-    });
+    return books.filter((book) =>
+      book.title?.toLowerCase().includes(searchText) ||
+      book.author?.toLowerCase().includes(searchText) ||
+      book.category?.toLowerCase().includes(searchText)
+    );
   }, [books, search]);
 
-  // Handle Input
+  // Ownership
+  const isOwner = (book) =>
+    !!userEmail &&
+    book.userEmail?.toLowerCase() === userEmail.toLowerCase();
+
+  // Input
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -88,15 +103,29 @@ export default function BooksPage() {
     }));
   };
 
-  // Reset Form
+  // Reset
   const resetForm = () => {
     setForm(initialForm);
     setEditingId(null);
   };
 
-  // Add or Update Book
+  // Login
+  const redirectToLogin = () => {
+    router.push(
+      `/sign-in?callbackURL=${encodeURIComponent("/books")}`
+    );
+  };
+
+  // Add / Update
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (sessionLoading) return;
+
+    if (!session || !userEmail) {
+      redirectToLogin();
+      return;
+    }
 
     try {
       setSaving(true);
@@ -106,6 +135,7 @@ export default function BooksPage() {
       const bookData = {
         ...form,
         quantity: Number(form.quantity),
+        userEmail,
       };
 
       const url = editingId
@@ -143,8 +173,18 @@ export default function BooksPage() {
     }
   };
 
-  // Edit Book
+  // Edit
   const handleEdit = (book) => {
+    if (!session || !userEmail) {
+      redirectToLogin();
+      return;
+    }
+
+    if (!isOwner(book)) {
+      setError("You can only edit your own books.");
+      return;
+    }
+
     setEditingId(book._id);
 
     setForm({
@@ -165,16 +205,31 @@ export default function BooksPage() {
     });
   };
 
-  // Delete Book
+  // Delete
   const handleDelete = async (id) => {
+    if (!session || !userEmail) {
+      redirectToLogin();
+      return;
+    }
+
+    const book = books.find((item) => item._id === id);
+
+    if (!book || !isOwner(book)) {
+      setError("You can only delete your own books.");
+      return;
+    }
+
     try {
       setDeletingId(id);
       setError("");
       setMessage("");
 
-      const response = await fetch(`${API_URL}/books/${id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `${API_URL}/books/${id}?userEmail=${encodeURIComponent(userEmail)}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       const result = await response.json();
 
@@ -183,7 +238,7 @@ export default function BooksPage() {
       }
 
       setBooks((previous) =>
-        previous.filter((book) => book._id !== id)
+        previous.filter((item) => item._id !== id)
       );
 
       setMessage("Book deleted successfully!");
@@ -219,12 +274,19 @@ export default function BooksPage() {
           <button
             type="button"
             onClick={() => {
+              if (!session && !sessionLoading) {
+                redirectToLogin();
+                return;
+              }
+
               resetForm();
+
               document
                 .getElementById("book-form")
                 ?.scrollIntoView({ behavior: "smooth" });
             }}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700"
+            disabled={sessionLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:opacity-50"
           >
             <Plus size={20} />
             Add New Book
@@ -233,24 +295,18 @@ export default function BooksPage() {
 
         {/* Messages */}
         {message && (
-          <div
-            role="status"
-            className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
-          >
+          <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
             {message}
           </div>
         )}
 
         {error && (
-          <div
-            role="alert"
-            className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-          >
+          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        {/* Add / Edit Form */}
+        {/* Add / Edit */}
         <section
           id="book-form"
           className="mb-12 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
@@ -282,6 +338,7 @@ export default function BooksPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-5 sm:grid-cols-2">
+
               <div>
                 <label className="mb-2 block text-sm font-semibold">
                   Book Title *
@@ -376,7 +433,7 @@ export default function BooksPage() {
             <div className="flex flex-wrap gap-3">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || sessionLoading}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? (
@@ -405,11 +462,12 @@ export default function BooksPage() {
           </form>
         </section>
 
-        {/* Books Section */}
+        {/* Books */}
         <section>
           <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <h2 className="text-2xl font-bold">All Books</h2>
+
               <p className="mt-1 text-sm text-slate-500">
                 {books.length} books in your library
               </p>
@@ -454,6 +512,7 @@ export default function BooksPage() {
                   className="animate-pulse overflow-hidden rounded-2xl border border-slate-200 bg-white"
                 >
                   <div className="h-56 bg-slate-200" />
+
                   <div className="space-y-3 p-5">
                     <div className="h-5 w-3/4 rounded bg-slate-200" />
                     <div className="h-4 w-1/2 rounded bg-slate-200" />
@@ -486,12 +545,12 @@ export default function BooksPage() {
                   key={book._id}
                   className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                 >
-                  {/* Book Image */}
+                  {/* Image */}
                   <div className="relative flex h-56 items-center justify-center overflow-hidden bg-emerald-50">
                     {book.image ? (
                       <img
                         src={book.image}
-                        alt={book.title}
+                        alt={book.title || "Book cover"}
                         loading="lazy"
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
@@ -507,7 +566,7 @@ export default function BooksPage() {
                     </span>
                   </div>
 
-                  {/* Book Details */}
+                  {/* Details */}
                   <div className="p-5">
                     <h3 className="line-clamp-1 text-lg font-bold">
                       {book.title}
@@ -532,32 +591,42 @@ export default function BooksPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div
+                      className={`mt-4 grid gap-3 ${
+                        isOwner(book)
+                          ? "grid-cols-1 sm:grid-cols-3"
+                          : "grid-cols-1"
+                      }`}
+                    >
                       <Link
-                        href={`/books/${book._id}`}
+                        href={`/book/${book._id}`}
                         className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
                       >
                         <BookOpen size={16} />
                         Details
                       </Link>
 
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(book)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
-                      >
-                        <Pencil size={16} />
-                        Edit
-                      </button>
+                      {isOwner(book) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(book)}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                          >
+                            <Pencil size={16} />
+                            Edit
+                          </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDeleteId(book._id)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                      >
-                        <Trash2 size={16} />
-                        Delete
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(book._id)}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                          >
+                            <Trash2 size={16} />
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
 
                     {/* Delete Confirmation */}
