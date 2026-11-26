@@ -6,20 +6,26 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 async function getBook(id) {
-  if (!/^[a-fA-F0-9]{24}$/.test(id)) {
-    return null;
-  }
-
   try {
+    if (!id || !/^[a-fA-F0-9]{24}$/.test(id)) {
+      return null;
+    }
+
     const response = await fetch(`${API_URL}/books/${id}`, {
       cache: "no-store",
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error("Book API error:", response.status);
+      return null;
+    }
 
     const book = await response.json();
 
-    return book?._id ? book : null;
+    // Supports both direct book and { book: ... } response.
+    const bookData = book?.book || book;
+
+    return bookData?._id ? bookData : null;
   } catch (error) {
     console.error("Book fetching error:", error);
     return null;
