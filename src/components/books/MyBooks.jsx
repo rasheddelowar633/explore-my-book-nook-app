@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -117,11 +118,13 @@ export default function MyBooks() {
         <h2 className="text-2xl font-bold text-gray-800">
           Login Required
         </h2>
+
         <p className="mt-2 text-gray-600">
           Please login to see the books you have added.
         </p>
+
         <button
-          onClick={() => router.push("/login")}
+          onClick={() => router.push("/sign-in")}
           className="mt-5 rounded-xl bg-emerald-600 px-6 py-3 font-semibold text-white hover:bg-emerald-700"
         >
           Login Now
@@ -137,6 +140,7 @@ export default function MyBooks() {
           <h2 className="text-2xl font-bold text-gray-900">
             Your Book Collection
           </h2>
+
           <p className="mt-1 text-gray-500">
             Manage the books you have added to BookNook.
           </p>
@@ -154,6 +158,7 @@ export default function MyBooks() {
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Total Books</p>
+
           <p className="mt-2 text-3xl font-bold text-emerald-700">
             {books.length}
           </p>
@@ -161,6 +166,7 @@ export default function MyBooks() {
 
         <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Available Copies</p>
+
           <p className="mt-2 text-3xl font-bold text-emerald-700">
             {books.reduce(
               (total, book) => total + Number(book.quantity || 0),
@@ -209,9 +215,11 @@ export default function MyBooks() {
       ) : filteredBooks.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-emerald-200 bg-white px-6 py-16 text-center">
           <div className="mb-4 text-5xl">📚</div>
+
           <h3 className="text-xl font-bold text-gray-800">
             {search ? "No Matching Books" : "No Books Added Yet"}
           </h3>
+
           <p className="mt-2 text-gray-500">
             {search
               ? "Try searching with another title or author."
@@ -270,18 +278,30 @@ export default function MyBooks() {
                   <span className="text-sm text-gray-500">
                     Available copies
                   </span>
+
                   <span className="font-bold text-emerald-700">
                     {book.quantity ?? 0}
                   </span>
                 </div>
 
-                <button
-                  onClick={() => handleDelete(book._id)}
-                  disabled={deletingId === book._id}
-                  className="mt-5 w-full rounded-xl border border-red-200 px-4 py-3 font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                >
-                  {deletingId === book._id ? "Deleting..." : "Delete Book"}
-                </button>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => router.push(`/book/${book._id}`)}
+                    className="rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700"
+                  >
+                    View Details
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(book._id)}
+                    disabled={deletingId === book._id}
+                    className="rounded-xl border border-red-200 px-4 py-3 font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {deletingId === book._id
+                      ? "Deleting..."
+                      : "Delete Book"}
+                  </button>
+                </div>
               </div>
             </article>
           ))}
